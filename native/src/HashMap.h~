@@ -1,0 +1,69 @@
+#pragma once
+#include "Types.h"
+
+uint hash(void *val, const uint N) { return reinterpret_cast<int64_t>(&val) % N; };
+
+#if defined(EMBEDDED)
+constexpr uint N = 10;
+template <typename T>
+class HashMap {
+ private:
+  struct Node {
+    T val;
+    Node *next;
+  };
+  Node  nodes[N];
+  uint currNode;
+  Node *table[N];
+  void nextNode() { currNode = (currNode + 1) % N; }
+ public:
+  HashMap() { currNode = 0; }
+  
+  bool insert(const T &val) {
+    if(currNode == N) {
+      return false;
+    }
+    else {
+      uint ind = hash(&val, N);
+      Node *node = table[ind];
+      if(node) {
+	while(node) {
+	  if(node->next) node = node->next;
+	  else {
+	    node->next = &nodes[currNode];
+	    node->next->val = val;
+	  }
+	}
+      } else {
+	table[ind] = &nodes[currNode];
+	table[ind]->val = val; 
+      }
+      nextNode();
+      return true;
+    }
+  };
+
+  bool exists(const T &val) {
+    uint ind = hash(&val, N);
+    Node *node = table[ind];
+    if(node) {
+      while(node) {
+	if(node->val == val) return true;
+	else node = node->next;
+      }
+    }
+    return false;
+  };
+};
+#elif defined(LIVE)
+#include <unordered_map>
+template <typename T>
+class HashMap {
+ private:
+  std::unordered_map<int, T> map;
+ public:
+  HashMap() {};
+  bool insert(const T &val) { map.emplace(hash(&val, 1000), val); };
+  bool exists(const T &val) { return map.find(hash(&val, 1000)) != map.end(); };
+};
+#endif

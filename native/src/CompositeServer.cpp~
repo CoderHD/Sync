@@ -1,0 +1,8 @@
+#include "CompositeServer.h"
+
+void initCompositeServer() {
+  asio::io_service service;
+  Server server(service);
+  BroadcastServer bServer(service);
+  service.run();
+}
