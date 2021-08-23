@@ -7,12 +7,14 @@ constexpr uint IP_SIZE = 4;
 
 // Zustandsspeicherung
 enum StdPurposeId : u64 { STORAGE = 1, ROBOT = 2, USER = 4, OTHER = 8 };
+
 struct Client {
   char ip[IP_SIZE];
   s32  id;
   s64  purposeId;
   std::string name;
 };
+
 struct Session {
   Client *remote;
   // Weitere Informationen...
@@ -30,7 +32,7 @@ struct Msg {
 };
 
 // Schnittstelle für Callbacks
-using ClientCreatedCallback  = bool(*)(Client *);
+using ClientCreatedCallback  = bool(*)(Client*);
 using SessionCreatedCallback = bool(*)(Session*);
 using MsgRecievedCallback    = bool(*)(Msg*);
 
@@ -40,6 +42,16 @@ struct MsgBuffer {
   char buffer[msgBufferSize];
 };
 
+struct BufferedMsg {
+  MsgBuffer *buffer;
+  uint length;
+};
+
+struct MsgSendInterface {
+  virtual bool send(Session *session, BufferedMsg *msg) = 0;
+  virtual bool sendBroadcast(BufferedMsg *msg) = 0;
+};
+
 class MsgBackend {
   HashMap<Client> clients;
   HashMap<Session> sessions;
@@ -47,7 +59,8 @@ class MsgBackend {
   HashMap<SessionCreatedCallback> sessCrCallbacks;
   HashMap<MsgRecievedCallback>    msgRcCallbacks;
   uint msgHeaderSize, discMsgSize;
-
+  MsgSendInterface *msgSend;
+  
   bool createClient(Client client);
   bool createSession(Session session);
 
@@ -58,6 +71,8 @@ public:
   bool registerSessionCreated(s64 purposeId, SessionCreatedCallback callback);
   bool registerMsgRecieved(s32 type, MsgRecievedCallback callback);
 
+  bool setMsgSendInterface(MsgSendInterface *_msgSend);
+  
   bool handleDiscMsg(MsgBuffer *msgBuffer);
   bool handleMsg(MsgBuffer *msgBuffer);
 

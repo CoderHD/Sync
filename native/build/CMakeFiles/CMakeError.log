@@ -1,0 +1,14 @@
+Determining if the include file pthread.h exists failed with the following output:
+Change Dir: D:/Projekte/Sync/native/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/MSBuild.exe cmTC_23192.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R)-Build-Engine, Version 16.9.0+5e4b48a27 für .NET Framework
+Copyright (C) Microsoft Corporation. Alle Rechte vorbehalten.
+
+  Microsoft (R) C/C++-Optimierungscompiler Version 19.28.29915 für x64
+  Copyright (C) Microsoft Corporation. Alle Rechte vorbehalten.
+  CheckIncludeFile.c
+  cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_23192.dir\Debug\\" /Fd"cmTC_23192.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue D:\Projekte\Sync\native\build\CMakeFiles\CMakeTmp\CheckIncludeFile.c
+D:\Projekte\Sync\native\build\CMakeFiles\CMakeTmp\CheckIncludeFile.c(1,10): fatal error C1083: Datei (Include) kann nicht geöffnet werden: "pthread.h": No such file or directory [D:\Projekte\Sync\native\build\CMakeFiles\CMakeTmp\cmTC_23192.vcxproj]
+
+
+

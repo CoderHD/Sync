@@ -79,6 +79,14 @@ bool MsgBackend::registerMsgRecieved(s32 type, MsgRecievedCallback callback) {
   return msgRcCallbacks.insert(type, callback);
 }
 
+bool MsgBackend::setMsgSendInterface(MsgSendInterface *_msgSend) {
+  if(msgSend) return false;
+  else {
+    msgSend = _msgSend;
+    return true;
+  }
+}
+
 MsgBackend::MsgBackend() {
   char initBuff[100];
   MsgInfo initMsgInfo;

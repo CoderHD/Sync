@@ -2,8 +2,10 @@
 #include "BroadcastServer.h"
 #include "Server.h"
 
-struct CompositeServer {
+struct CompositeServer : public MsgSendInterface {
   BroadcastServer broadcastServer;
   Server server;
-  CompositeServer(MsgBackend *backend, asio::io_service &service);
+  CompositeServer(int port, MsgBackend *backend, asio::io_service &service);
+  bool send(Session *session, BufferedMsg *msg) override;
+  bool sendBroadcast(BufferedMsg *msg) override;
 };
