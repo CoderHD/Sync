@@ -28,6 +28,15 @@ class MemoryStream : public BaseStream
   bool seek(uint pos) override;
 };
 
+template <typename T>
+inline MemoryStream makeMemoryStream(T t) {
+  uint size = sizebytes(T);
+  char buff[size];
+  MemoryStream stream(buff, size);
+  stream.write(t, size);
+  return stream;
+}
+
 #if defined(LIVE)
 #include <cstdio>
 

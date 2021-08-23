@@ -4,7 +4,7 @@
 
 void BroadcastServer::startRead() {
   socket.async_receive_from(
-			    asio::buffer(buffer.buffer, backend->getDiscMsgSize()), endpoint,
+			    asio::buffer(buffer.data, backend->getDiscMsgSize()), endpoint,
 			    boost::bind(&BroadcastServer::handleRead, this, boost_err_placeholder, boost_bt_placeholder)
 			    );
 }
@@ -20,7 +20,7 @@ void BroadcastServer::handleRead(const boost_err& err, size_t bytes_transferred)
   }  
 }  
 
-void handleWrite(const boost_err &err, size_t bytes_transferred) {
+void BroadcastServer::handleWrite(const boost_err &err, size_t bytes_transferred) {
   if(err) {
     LOG_ERROR(err.message().c_str());
     socket.close();
@@ -28,10 +28,14 @@ void handleWrite(const boost_err &err, size_t bytes_transferred) {
   }
 }
 
-BroadcastServer::BroadcastServer(int port, MsgBackend *backend, asio::io_context& io_context)
-  : backend(backend), endpoint(asio::ip::address_v4::any(), port), socket(io_context) {
-    std::cout << asio::ip::address_v4::any() << std::endl;
-    std::cout << asio::ip::address_v4::broadcast() << std::endl;
+bool BroadcastServer::send(Buffer *buffer, uint length) {
+  socket.async_send(asio::buffer(buffer, length), bind(&BroadcastServer::handleWrite, this, boost_err_placeholder, boost_bt_placeholder));
+  return true;
+}
+
+
+BroadcastServer::BroadcastServer(int port, Backend *backend, asio::io_context& io_context) 
+    : buffer(bufferData, msgBufferSize), backend(backend), endpoint(asio::ip::address_v4::any(), port), socket(io_context) {
   initSocket();
 }
 
@@ -51,13 +55,5 @@ bool BroadcastServer::initSocket() {
     return true;
   }
 }
-
-bool send(BufferedMsg *msg) {
-  socket.async_write_some(
-			  asio::buffer(msg->buffer, msg->length),
-			  bind(&BroadcastServer::handleWrite, this, boost_err_placeholder, boost_bt_placeholder)
-			  );
-}
-
 
 bool BroadcastServer::isRunning() { return running; }

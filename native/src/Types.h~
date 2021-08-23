@@ -1,5 +1,0 @@
-#pragma once
-
-#define null nullptr;
-using uint = unsigned int;
-using ulong = unsigned long;

@@ -67,6 +67,11 @@ class HashMap {
     map.emplace(id, val); 
     return true; 
   };
+
+  bool erase(u32 id) {
+      map.erase(id);
+      return true;
+  }
   
   T *find(u32 id) { 
     auto found = map.find(id); 

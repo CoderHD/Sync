@@ -8,7 +8,7 @@ void ConHandler::handleRead(const boost_err& err, size_t bytes_transferred){
     socket.close();
   }   
   else {  
-    std::cout << buffer.buffer << std::endl;
+    std::cout << buffer.data << std::endl;
   }
 }  
 void ConHandler::handleWrite(const boost_err& err, size_t bytes_transferred){  
@@ -21,17 +21,17 @@ void ConHandler::handleWrite(const boost_err& err, size_t bytes_transferred){
   }  
 }  
 
-ConHandler::pointer ConHandler::create(MsgBackend *backend, asio::io_service& io_service) 
+ConHandler::pointer ConHandler::create(Backend *backend, asio::io_service& io_service) 
 {
   return pointer(new ConHandler(backend, io_service));
 }  
 
-ConHandler::ConHandler(MsgBackend *backend, asio::io_service& io_service): backend(backend), socket(io_service) 
+ConHandler::ConHandler(Backend *backend, asio::io_service& io_service): backend(backend), socket(io_service) 
 {
 }    
 
 void ConHandler::start() {  
-  socket.async_read_some(asio::buffer(buffer.buffer, backend->getMsgHeaderSize()), bind(&ConHandler::handleRead, this, boost_err_placeholder, boost_bt_placeholder));
+  socket.async_read_some(asio::buffer(buffer.data, backend->getMsgHeaderSize()), bind(&ConHandler::handleRead, this, boost_err_placeholder, boost_bt_placeholder));
   //socket.async_write_some(asio::buffer(message, length), bind(&ConHandler::handleWrite, shared_from_this(), boost_err_placeholder, boost_bt_placeholder));
 }  
 
@@ -52,7 +52,11 @@ void Server::handleAccept(ConHandler::pointer connection, const boost_err& err){
   startAccept();  
 }
 
-Server::Server(int port, MsgBackend *backend, asio::io_service& io_service): backend(backend), io_service(&io_service), acceptor(io_service, tcp::endpoint(tcp::v4(), port)) {
+bool Server::send(Session *session, Buffer *buffer, uint length) {
+  return true;
+}
+
+Server::Server(int port, Backend *backend, asio::io_service& io_service): backend(backend), io_service(&io_service), acceptor(io_service, tcp::endpoint(tcp::v4(), port)) {
   // Verbindungen sofort annehmen
   startAccept();
 }           

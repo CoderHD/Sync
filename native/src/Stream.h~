@@ -1,5 +1,0 @@
-class BaseStream {
-  virtual uint read(uint size) = 0;
-  virtual void write(char *buff, uint size) = 0;
-  virtual bool available() = 0;
-};

@@ -1,12 +1,16 @@
 #pragma once
 
+#define sizebytes(type) sizeof(type) / 8
+
 #define null nullptr
 using ushort = unsigned short;
 using uint = unsigned int;
 using ulong = unsigned long;
 
 #if   defined(LIVE)
+using s8  = signed   char;
 using s16 = signed   short;
+using u8  = unsigned char;
 using u16 = unsigned short;
 using s32 = signed   int;
 using u32 = unsigned int;

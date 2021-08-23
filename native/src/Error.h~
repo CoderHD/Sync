@@ -1,6 +1,0 @@
-#pragma once
-#include <iostream>
-
-inline void logError(const char *msg) {
-  std::cerr << "[Error]: " << msg << std::endl;
-}

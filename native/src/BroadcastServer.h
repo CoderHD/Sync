@@ -3,7 +3,7 @@
 #include "boost/asio.hpp"
 #include "boost/bind.hpp"
 #include "boost/enable_shared_from_this.hpp"
-#include "MsgBackend.h"
+#include "Backend.h"
 
 using namespace boost;
 using namespace boost::asio::ip;
@@ -11,11 +11,14 @@ using boost_err = boost::system::error_code;
 #define boost_err_placeholder asio::placeholders::error
 #define boost_bt_placeholder asio::placeholders::bytes_transferred
 
-class BroadcastServer// : public boost::enable_shared_from_this<BroadcastServer>
+constexpr uint msgBufferSize = 1024;
+
+class BroadcastServer : public BroadcastServerInterface // : public boost::enable_shared_from_this<BroadcastServer>
 {
  private:
-  MsgBuffer buffer;
-  MsgBackend *backend;
+  char bufferData[msgBufferSize];
+  Buffer buffer;
+  Backend *backend;
   system::error_code error;
   asio::ip::udp::endpoint endpoint;
   asio::ip::udp::socket socket;
@@ -24,9 +27,10 @@ class BroadcastServer// : public boost::enable_shared_from_this<BroadcastServer>
   void startRead();
   void handleRead(const boost_err &err, size_t bytes_transferred);
   void handleWrite(const boost_err &err, size_t bytes_transferred);
+  bool send(Buffer *buffer, uint length) override;
+  
  public: 
-  BroadcastServer(int port, MsgBackend *backend, asio::io_service& io_service);
+  BroadcastServer(int port, Backend *backend, asio::io_context& io_context);
   bool initSocket();
-  bool send(BufferedMsg *msg);
   bool isRunning();
 };
