@@ -8,24 +8,14 @@ add_compile_definitions(BIG_ENDIAN)
 add_compile_definitions(_WIN32_WINNT=0x0601)
 add_compile_definitions(BOOST_BIND_NO_PLACEHOLDERS)
 
-find_package(Threads REQUIRED)
+file(GLOB SRC src/*.cpp)
+file(GLOB HEADERS src/*.h)
 
-file(GLOB SRC  src/*.cpp)
-file(GLOB MAIN src_main/*.cpp)
+add_library(lib ${SRC} ${HEADERS})
+target_include_directories(lib PUBLIC "D:/Bibliotheken/boost_1_76_0")
+target_link_directories(lib PUBLIC    "D:/Bibliotheken/boost_1_76_0/stage/lib")
 
-add_executable(gui ${SRC} ${MAIN})
-
-target_include_directories(gui PUBLIC "D:/Bibliotheken/boost_1_76_0")
-target_link_directories(gui PUBLIC    "D:/Bibliotheken/boost_1_76_0/stage/lib")
-
-#target_include_directories(gui PUBLIC ../lib_include/)
-
-#if(WIN32)
-#    target_link_directories(gui PUBLIC ../lib_link/win64)
-#endif()
-#if(LINUX)
-#    target_link_directories(gui PUBLIC ../lib_link/linux)
-#endif()
-
-#target_link_libraries(gui glfw3 freetype)
-#target_link_libraries(gui Threads::Threads)
+add_executable(server "src_main/Server.cpp")
+add_executable(client "src_main/Client.cpp")
+target_link_libraries(server lib)
+target_link_libraries(client lib)

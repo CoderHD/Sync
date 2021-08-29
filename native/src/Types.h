@@ -1,7 +1,5 @@
 #pragma once
 
-#define sizebytes(type) sizeof(type) / 8
-
 #define null nullptr
 using ushort = unsigned short;
 using uint = unsigned int;

@@ -1,8 +1,0 @@
-#include "../src/Server.h"
-
-int main() {
-  asio::io_service service;
-  Server server(service);
-  service.run();
-  return 0;
-}

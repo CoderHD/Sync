@@ -71,11 +71,19 @@ class HashMap {
   bool erase(u32 id) {
       map.erase(id);
       return true;
-  }
+  };
   
   T *find(u32 id) { 
     auto found = map.find(id); 
     return (found == map.end()) ? null : &found->second; 
+  };
+
+  typename std::unordered_map<int, T>::iterator getBegin() {
+      return map.begin();
+  };
+
+  typename std::unordered_map<int, T>::iterator getEnd() {
+      return map.end();
   };
 };
 #endif

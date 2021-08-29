@@ -11,26 +11,30 @@ using boost_err = boost::system::error_code;
 #define boost_err_placeholder asio::placeholders::error
 #define boost_bt_placeholder asio::placeholders::bytes_transferred
 
-constexpr uint msgBufferSize = 1024;
+constexpr uint broadcastBufferSize = 1024;
 
-class BroadcastServer : public BroadcastServerInterface // : public boost::enable_shared_from_this<BroadcastServer>
+class BroadcastServer : public PacketServerInterface // : public boost::enable_shared_from_this<BroadcastServer>
 {
- private:
-  char bufferData[msgBufferSize];
-  Buffer buffer;
-  Backend *backend;
-  system::error_code error;
-  asio::ip::udp::endpoint endpoint;
-  asio::ip::udp::socket socket;
-  bool running;
+private:
+	u8 bufferData[broadcastBufferSize];
+	Buffer buffer;
+	Backend *backend;
+	int port;
+	system::error_code error;
+	udp::endpoint localEndpoint, remoteEndpoint;
+	udp::socket socket;
+	bool running;
+
+	udp::endpoint createRemoteEndpoint(u32 address);
+	void read();
+	void handleRead(const boost_err &err, size_t bytes_transferred);
+	void handleWrite(const boost_err &err, size_t bytes_transferred);
+	bool send(Buffer *buffer, uint length) override;
+	bool send(Buffer *buffer, uint length, u32 address) override;
   
-  void startRead();
-  void handleRead(const boost_err &err, size_t bytes_transferred);
-  void handleWrite(const boost_err &err, size_t bytes_transferred);
-  bool send(Buffer *buffer, uint length) override;
-  
- public: 
-  BroadcastServer(int port, Backend *backend, asio::io_context& io_context);
-  bool initSocket();
-  bool isRunning();
+public: 
+	BroadcastServer(int port, Backend *backend, asio::io_context& io_context);
+	bool initSocket();
+	bool isRunning();
+	Buffer* getBuffer();
 };
