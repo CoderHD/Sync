@@ -58,6 +58,7 @@ private:
 public:
 	FileStream(const char* path, const char* mode);
 	void open(const char* path, const char* mode);
+	bool close();
 	uint read(void* out, uint outSize) override;
 	bool write(void* in, uint inSize) override;
 	bool available() override;

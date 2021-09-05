@@ -87,6 +87,10 @@ void FileStream::open(const char* path, const char* mode)
 	if (mode[0] == 'r' && mode[1] == 'w' || mode[0] == 'w' && mode[1] == 'r') { readMode = true; writeMode = true; }
 }
 
+bool FileStream::close() {
+	return fclose(file);
+}
+
 uint FileStream::read(void* out, uint outSize)
 {
 	if (readMode) return fread(&out, outSize, 1, file);

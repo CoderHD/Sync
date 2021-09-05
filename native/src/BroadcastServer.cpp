@@ -12,54 +12,26 @@ udp::endpoint BroadcastServer::createRemoteEndpoint(u32 address) {
 	return endpoint;
 }
 
-void BroadcastServer::read() {
-	LOG("Warte auf Packet");
-	socket.async_receive_from(
-				  asio::buffer(buffer.data, backend->getDiscMsgSize()), remoteEndpoint,
-				  boost::bind(&BroadcastServer::handleRead, this, boost_err_placeholder, boost_bt_placeholder)
-				  );
-}
-
-void BroadcastServer::handleRead(const boost_err& err, size_t bytes_transferred) {
-	if (err) {
-		LOG("Packet wurden nicht gelesen.");
-		LOG_ERROR(err.message().c_str());
-		socket.close();
-		running = false;
-	}
-	else {
-		LOG("Packet wurden gelesen");
-		backend->handleDiscMsg(&buffer);
-	}
-}
-
-void BroadcastServer::handleWrite(const boost_err& err, size_t bytes_transferred) {
-	if (err) {
-		LOG("Packet wurde nicht gesendet.");
-		LOG_ERROR(err.message().c_str());
-		socket.close();
-		running = false;
-	}
-	else {
-		LOG("Packet wurde gesendet.");
-	}
-}
-
-bool BroadcastServer::send(Buffer* buffer, uint length) {
+bool BroadcastServer::writeBroadcast(Buffer* buffer, uint length) {
 	LOG("Sende Broadcast");
-	socket.async_send_to(asio::buffer(buffer->data, length), remoteEndpoint, bind(&BroadcastServer::handleWrite, this, boost_err_placeholder, boost_bt_placeholder));
-	return true;
+	uint bytes = socket.send_to(asio::buffer(buffer->data, length), remoteEndpoint);
+	return bytes == length;
 }
 
-bool BroadcastServer::send(Buffer* buffer, uint length, u32 address) {
+bool BroadcastServer::writeUnicast(u32 address, Buffer* buffer, uint length) {
 	LOG("Sende Unicast");
 	udp::endpoint endpoint = createRemoteEndpoint(address);
-	socket.async_send_to(asio::buffer(buffer->data, length), endpoint, bind(&BroadcastServer::handleWrite, this, boost_err_placeholder, boost_bt_placeholder));
-	return true;
+	uint bytes = socket.send_to(asio::buffer(buffer->data, length), endpoint);
+	return bytes == length;
 }
 
-BroadcastServer::BroadcastServer(int port, Backend* backend, asio::io_context& io_context)
-	: buffer(bufferData, broadcastBufferSize), backend(backend), port(port), localEndpoint(address_v4::loopback(), port), remoteEndpoint(address_v4::broadcast(), port), socket(io_context) {
+bool BroadcastServer::read(Buffer* buffer, uint length) {
+	uint bytes = socket.receive_from(asio::buffer(buffer->data, backend->getDiscMsgSize()), remoteEndpoint);
+	return bytes == length;
+}
+
+BroadcastServer::BroadcastServer(int port, Backend* backend, ExecutorPool* pool, asio::io_context& io_context)
+	: bufferMng(broadcastBufferSize), backend(backend), pool(pool), port(port), localEndpoint(address_v4::loopback(), port), remoteEndpoint(address_v4::broadcast(), port), socket(io_context) {
 	initSocket();
 }
 
@@ -77,14 +49,12 @@ bool BroadcastServer::initSocket() {
 		socket.set_option(udp::socket::reuse_address(true));
 		socket.bind(localEndpoint);
 		socket.set_option(asio::socket_base::broadcast(true));
-		read();
+		pool->execute([this]() {
+			backend->executeDiscovery();
+		});
 		running = true;
 		return true;
 	}
 }
 
 bool BroadcastServer::isRunning() { return running; }
-
-Buffer* BroadcastServer::getBuffer() {
-	return &buffer;
-}

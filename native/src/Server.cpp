@@ -4,52 +4,40 @@
 
 #define LOG(what) LOG_MODULE("Tcp", what)
 
-void ConHandler::handleRead(const boost_err& err, size_t bytes_transferred) {
-	if (err) {
-		LOG_ERROR(err.message().c_str());
-		socket.close();
-	}
-	else {
-		backend->handleMsg(&buffer);
-	}
-}
-void ConHandler::handleWrite(const boost_err& err, size_t bytes_transferred) {
-	if (err) {
-		LOG_ERROR(err.message().c_str());
-		socket.close();
-	}
-	else {
-		// Socket nach erfolgreichem Senden schließen
-		socketBusy = false;
-		if (socketClose)
-			close();
-	}
-}
-
 ConHandler::pointer ConHandler::create(Backend* backend, asio::io_service& io_service)
 {
 	return pointer(new ConHandler(backend, io_service));
 }
 
-ConHandler::ConHandler(Backend* backend, asio::io_service& io_service) : buffer(bufferData, serverBufferSize), backend(backend), socket(io_service)
+ConHandler::ConHandler(Backend* backend, asio::io_service& io_service) : backend(backend), socket(io_service)
 {
 }
 
-void ConHandler::read() {
-	socket.async_read_some(asio::buffer(buffer.data, backend->getMsgHeaderSize()), bind(&ConHandler::handleRead, this, boost_err_placeholder, boost_bt_placeholder));
+void ConHandler::run(ExecutorPool* pool) {
+	pool->execute([this]() {
+		backend->executeConnection(getAddress());
+	});
 }
 
-void ConHandler::send(Buffer* buffer, uint length) {
-	socketBusy = true;
-	socket.async_write_some(asio::buffer(buffer->data, length), bind(&ConHandler::handleWrite, this, boost_err_placeholder, boost_bt_placeholder));
+bool ConHandler::read(Buffer* buffer, uint length) {
+	boost_err err;
+	socket.read_some(asio::buffer(buffer->data, backend->getMsgHeaderSize()), err);
+	LOG_ERROR_IF(err, err.message().c_str());
+	return !err;
 }
 
-void ConHandler::close() {
-	// Schließen evtl. bis zum erfolgreichen Senden der letzten Nachricht verzögern. 
-	if (socketBusy)
-		socketClose = true;
-	else
-		socket.close();
+bool ConHandler::write(Buffer* buffer, uint length) {
+	boost_err err;
+	socket.write_some(asio::buffer(buffer->data, length), err);
+	LOG_ERROR_IF(err, err.message().c_str());
+	return !err;
+}
+
+bool ConHandler::close() {
+	boost_err err;
+	socket.close(err);
+	LOG_ERROR_IF(err, err.message().c_str());
+	return !err;
 }
 
 tcp::socket& ConHandler::getSocket() {
@@ -61,36 +49,22 @@ u32 ConHandler::getAddress() {
 	return *reinterpret_cast<u32*>(address.data());
 }
 
-void Server::handleAccept(ConHandler::pointer connection, const boost_err& err) {
-	if (err) {
-		LOG("Verbindung [remote -> local] wurde abgelehnt");
-		LOG_ERROR(err.message().c_str());
-	} else {
-		LOG("Verbindung [remote -> local] wurde angenommen");
-		u32 address = connection->getAddress();
-		Client* client = backend->handleConnection(address, &buffer);
-		if (client != null) {
-			// Verbindung speichern
-			connections.emplace(address, connection);
-			// Verbindung annehmen
-			connection->read();
-		}
-	}
-	accept();
+void Server::handleAccept(ConHandler::pointer connection) {
+	LOG("Verbindung [remote -> local] wurde angenommen");
+	u32 address = connection->getAddress();
+	// Verbindung speichern
+	connections.emplace(address, connection);
+	// Verbindung starten
+	connection->run(pool);
 }
 
-void Server::handleConnect(ConHandler::pointer connection, const boost_err& err) {
-	if (err) {
-		LOG("Verbindung [local -> remote] wurde abgelehnt");
-		LOG_ERROR(err.message().c_str());
-	} else {
-		LOG("Verbindung [local -> remote] wurde angenommen");
-		u32 address = connection->getAddress();
-		// Verbindung speichern
-		connections.emplace(address, connection);
-		// Verbindung annehmen
-		connection->read();
-	}
+void Server::handleConnect(ConHandler::pointer connection) {
+	LOG("Verbindung [local -> remote] wurde angenommen");
+	u32 address = connection->getAddress();
+	// Verbindung speichern
+	connections.emplace(address, connection);
+	// Verbindung starten
+	connection->run(pool);
 }
 
 tcp::endpoint Server::createRemoteEndpoint(u32 address) {
@@ -100,46 +74,71 @@ tcp::endpoint Server::createRemoteEndpoint(u32 address) {
 	return endpoint;
 }
 
-void Server::accept() {
-	LOG("Warte auf Verbindungen");
+bool Server::accept() {
 	ConHandler::pointer connection = ConHandler::create(backend, *io_context);
-	acceptor.async_accept(connection->getSocket(), bind(&Server::handleAccept, this, connection, boost_err_placeholder));
-}
+	// Verbindung annehmen
+	boost_err err;
+	acceptor.accept(connection->getSocket(), err);
 
-bool Server::open(Client* client) {
-	LOG("Baue Verbindung auf");
-	ConHandler::pointer connection = ConHandler::create(backend, *io_context);
-	tcp::socket& socket = connection->getSocket();
-	auto endpoint = createRemoteEndpoint(client->ip);
-	// Verbindung aufbauen
-	socket.async_connect(endpoint, bind(&Server::handleConnect, this, connection, boost_err_placeholder));
-	return true;
-}
-
-bool Server::close(Client* client) {
-	LOG("Schließe Verbindung");
-	ConHandler::pointer connection = ConHandler::create(backend, *io_context);
-	tcp::socket& socket = connection->getSocket();
-	auto endpoint = createRemoteEndpoint(client->ip);
-	// Verbindung aufbauen
-	socket.async_connect(endpoint, bind(&Server::handleConnect, this, connection, boost_err_placeholder));
-	return true;
-}
-
-bool Server::send(u32 address, Buffer* buffer, uint length) {
-	auto found = connections.find(address);
-	if (found == connections.end()) {
+	if (err) {
+		LOG("Verbindung [remote -> local] wurde abgelehnt");
+		LOG_ERROR(err.message().c_str());
 		return false;
 	}
 	else {
-		ConHandler::pointer connection = found->second;
-		connection->send(buffer, length);
+		handleAccept(connection);
 		return true;
 	}
 }
 
-Server::Server(address_v4::bytes_type address, int port, Backend* backend, asio::io_context& io_context)
-	: buffer(bufferData, serverBufferSize), backend(backend), port(port), io_context(&io_context), acceptor(io_context) {
+bool Server::open(Client* client) {
+	ConHandler::pointer connection = ConHandler::create(backend, *io_context);
+	// Verbindung aufbauen
+	boost_err err;
+	connection->getSocket().connect(createRemoteEndpoint(client->address), err);
+
+	if (err) {
+		LOG("Verbindung [local -> remote] wurde abgelehnt");
+		LOG_ERROR(err.message().c_str());
+		return false;
+	}
+	else {
+		handleConnect(connection);
+		return true;
+	}
+}
+
+bool Server::close(Client* client) {
+	ConHandler::pointer connection = ConHandler::create(backend, *io_context);
+	tcp::socket& socket = connection->getSocket();
+	auto endpoint = createRemoteEndpoint(client->address);
+	// Verbindung aufbauen
+	boost_err err;
+	socket.connect(endpoint, err);
+	LOG_ERROR_IF(err, err.message().c_str());
+	return !err;
+}
+
+bool Server::write(u32 address, Buffer* buffer, uint length) {
+	auto found = connections.find(address);
+	if (found == connections.end()) return false;
+	else {
+		ConHandler::pointer connection = found->second;
+		return connection->write(buffer, length);
+	}
+}
+
+bool Server::read(u32 address, Buffer* buffer, uint length) {
+	auto found = connections.find(address);
+	if (found == connections.end()) return false;
+	else {
+		ConHandler::pointer connection = found->second;
+		return connection->read(buffer, length);
+	}
+}
+
+Server::Server(address_v4::bytes_type address, int port, Backend* backend, ExecutorPool* pool, asio::io_context& io_context)
+	: bufferMng(serverBufferSize), backend(backend), pool(pool), port(port), io_context(&io_context), acceptor(io_context) {
 	acceptor = tcp::acceptor(io_context, tcp::endpoint(address_v4(address), port));
 	// Verbindungen sofort annehmen
 	accept();
