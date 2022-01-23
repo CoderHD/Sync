@@ -1,2 +1,0 @@
-BuildWindows.bat
-BuildLinux.bat

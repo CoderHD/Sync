@@ -3,3 +3,7 @@
 ################################################################################
 
 /native/.vs
+/native/build
+/native/build_linux
+/native/lib
+/native/out

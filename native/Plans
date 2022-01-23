@@ -1,0 +1,19 @@
+23.08.2021
++ Feature - Backend koppeln
++ Backend Nachrichtenprotokoll entwerfen und einrichten
+- Frontend Nachrichten senden lassen
+- Frontend Verbindungen annehmen lassen
+- Frontend Tcp-Verbindungen mit Backend verbinden (Call und Callback)
+
+29.08.2021
+- Featurefunktionen für synchrone (aber multithreaded) Verwendung anpassen
+? asynchrone Stream- und Packetinterface Schnittstelle synchron machen
++ Client Verbindungsfunktion im Backend einführen
+? Feature Api zum lesen und schreiben in den Tcp Stream einrichten
++ Frontend Funktionen auf Synchronität umstimmen
+- Backend Funktionen auf Synchronität umstimmen, bis auf Client_Create, Client_Destroy, Session_Create, Session_Destory, Msg_Recieved
+- Server und Broadcast Server Threading einführen
+- Datenkontext oder sowas einführen, damit nur begrenzt viele Daten eine Session für begrenzte Zeit blockieren können
+
++ Serializerfunktionen sind nicht mehr aktuell
+- Buffer Overflows beheben

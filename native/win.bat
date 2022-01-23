@@ -1,0 +1,1 @@
+cd build && cmake -DBUILD_WINDOWS=True -DDEBUG=True ..
